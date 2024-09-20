@@ -3,11 +3,11 @@ import psycopg2
 # Database connection
 def get_connection():
     return psycopg2.connect(
-         dbname='matwana',
-    user='postgres',
-    password='1234',
-    host='localhost',
-    port='5432'
+        dbname='matwana',
+        user='postgres',
+        password='1234',
+        host='localhost',
+        port='5432'
     )
 
 # Vehicle Management
@@ -35,8 +35,37 @@ def add_vehicle(licenseplate, status):
 def view_vehicles():
     conn = get_connection()
     with conn.cursor() as cursor:
-        cursor.execute("SELECT * FROM vehicles")
-        return cursor.fetchall()
+        cursor.execute("""
+            SELECT v.vehicle_id, v.licenseplate, v.status, 
+                   d.name, d.contacts, 
+                   r.start_point, r.end_point
+            FROM vehicles v
+            LEFT JOIN drivers d ON v.vehicle_id = d.driver_id
+            LEFT JOIN routes r ON v.vehicle_id = r.route_id
+        """)
+        vehicles = cursor.fetchall()
+        for vehicle in vehicles:
+            print(f"ID: {vehicle[0]}, License Plate: {vehicle[1]}, Status: {vehicle[2]}, "
+                  f"Driver: {vehicle[3] or 'N/A'}, Contacts: {vehicle[4] or 'N/A'}, "
+                  f"Route: {vehicle[5] or 'N/A'} to {vehicle[6] or 'N/A'}")
+    conn.close()
+
+def update_vehicle(vehicle_id, licenseplate, status):
+    conn = get_connection()
+    with conn.cursor() as cursor:
+        cursor.execute("""
+            UPDATE vehicles
+            SET licenseplate = %s, status = %s
+            WHERE vehicle_id = %s
+        """, (licenseplate, status, vehicle_id))
+    conn.commit()
+    conn.close()
+
+def delete_vehicle(vehicle_id):
+    conn = get_connection()
+    with conn.cursor() as cursor:
+        cursor.execute("DELETE FROM vehicles WHERE vehicle_id = %s", (vehicle_id,))
+    conn.commit()
     conn.close()
 
 # Route Management
@@ -65,7 +94,27 @@ def view_routes():
     conn = get_connection()
     with conn.cursor() as cursor:
         cursor.execute("SELECT * FROM routes")
-        return cursor.fetchall()
+        routes = cursor.fetchall()
+        for route in routes:
+            print(f"Route ID: {route[0]}, Start Point: {route[1]}, End Point: {route[2]}")
+    conn.close()
+
+def update_route(route_id, start_point, end_point):
+    conn = get_connection()
+    with conn.cursor() as cursor:
+        cursor.execute("""
+            UPDATE routes
+            SET start_point = %s, end_point = %s
+            WHERE route_id = %s
+        """, (start_point, end_point, route_id))
+    conn.commit()
+    conn.close()
+
+def delete_route(route_id):
+    conn = get_connection()
+    with conn.cursor() as cursor:
+        cursor.execute("DELETE FROM routes WHERE route_id = %s", (route_id,))
+    conn.commit()
     conn.close()
 
 # Driver Management
@@ -94,7 +143,27 @@ def view_drivers():
     conn = get_connection()
     with conn.cursor() as cursor:
         cursor.execute("SELECT * FROM drivers")
-        return cursor.fetchall()
+        drivers = cursor.fetchall()
+        for driver in drivers:
+            print(f"Driver ID: {driver[0]}, Name: {driver[1]}, Contacts: {driver[2]}")
+    conn.close()
+
+def update_driver(driver_id, name, contacts):
+    conn = get_connection()
+    with conn.cursor() as cursor:
+        cursor.execute("""
+            UPDATE drivers
+            SET name = %s, contacts = %s
+            WHERE driver_id = %s
+        """, (name, contacts, driver_id))
+    conn.commit()
+    conn.close()
+
+def delete_driver(driver_id):
+    conn = get_connection()
+    with conn.cursor() as cursor:
+        cursor.execute("DELETE FROM drivers WHERE driver_id = %s", (driver_id,))
+    conn.commit()
     conn.close()
 
 # Main Application
@@ -114,6 +183,8 @@ def main():
         if choice == '1':
             print("1. Add Vehicle")
             print("2. View Vehicles")
+            print("3. Update Vehicle")
+            print("4. Delete Vehicle")
             vehicle_choice = input("Select an option: ")
             if vehicle_choice == '1':
                 licenseplate = input("Enter license plate: ")
@@ -121,13 +192,23 @@ def main():
                 add_vehicle(licenseplate, status)
                 print("Vehicle added successfully.")
             elif vehicle_choice == '2':
-                vehicles = view_vehicles()
-                for vehicle in vehicles:
-                    print(vehicle)
+                view_vehicles()  # Formatted output
+            elif vehicle_choice == '3':
+                vehicle_id = int(input("Enter vehicle ID to update: "))
+                licenseplate = input("Enter new license plate: ")
+                status = input("Enter new status (Nganya, Mboko, Gari): ")
+                update_vehicle(vehicle_id, licenseplate, status)
+                print("Vehicle updated successfully.")
+            elif vehicle_choice == '4':
+                vehicle_id = int(input("Enter vehicle ID to delete: "))
+                delete_vehicle(vehicle_id)
+                print("Vehicle deleted successfully.")
 
         elif choice == '2':
             print("1. Add Route")
             print("2. View Routes")
+            print("3. Update Route")
+            print("4. Delete Route")
             route_choice = input("Select an option: ")
             if route_choice == '1':
                 start_point = input("Enter start point: ")
@@ -135,13 +216,23 @@ def main():
                 add_route(start_point, end_point)
                 print("Route added successfully.")
             elif route_choice == '2':
-                routes = view_routes()
-                for route in routes:
-                    print(route)
+                view_routes()  # Formatted output
+            elif route_choice == '3':
+                route_id = int(input("Enter route ID to update: "))
+                start_point = input("Enter new start point: ")
+                end_point = input("Enter new end point: ")
+                update_route(route_id, start_point, end_point)
+                print("Route updated successfully.")
+            elif route_choice == '4':
+                route_id = int(input("Enter route ID to delete: "))
+                delete_route(route_id)
+                print("Route deleted successfully.")
 
         elif choice == '3':
             print("1. Add Driver")
             print("2. View Drivers")
+            print("3. Update Driver")
+            print("4. Delete Driver")
             driver_choice = input("Select an option: ")
             if driver_choice == '1':
                 name = input("Enter name: ")
@@ -149,9 +240,17 @@ def main():
                 add_driver(name, contacts)
                 print("Driver added successfully.")
             elif driver_choice == '2':
-                drivers = view_drivers()
-                for driver in drivers:
-                    print(driver)
+                view_drivers()  # Formatted output
+            elif driver_choice == '3':
+                driver_id = int(input("Enter driver ID to update: "))
+                name = input("Enter new name: ")
+                contacts = input("Enter new contacts: ")
+                update_driver(driver_id, name, contacts)
+                print("Driver updated successfully.")
+            elif driver_choice == '4':
+                driver_id = int(input("Enter driver ID to delete: "))
+                delete_driver(driver_id)
+                print("Driver deleted successfully.")
 
         elif choice == '4':
             print("Exiting the application.")

@@ -1,0 +1,2 @@
+This application was designed to help sacco managers to know the whereabouts of their fleet.Balance the flow of vehicles to all routes.Give top services to the customers​.
+Working on improving this project and make it adapt to changes that come with the industry
